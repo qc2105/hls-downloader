@@ -1,17 +1,17 @@
 from __future__ import division, print_function
 
+import logging
 import os
 import sys
-import logging
 from collections import OrderedDict
+
+import requests
+import slugify
 
 if sys.version_info.major == 2:
     import urlparse  # Python 2.x
 else:
     import urllib.parse as urlparse  # Python 3.x
-
-import requests
-import slugify
 
 
 class Downloader:
@@ -19,9 +19,9 @@ class Downloader:
     def filter_filename_part(string, char_to_replace='_'):
         """
         Replace forbidden filename chars to '_' for string
-        :rtype: unicode
-        :type string: unicode
-        :type char_to_replace: unicode
+        :rtype: TEXT
+        :type string: TEXT
+        :type char_to_replace: TEXT
         """
         result = '.'.join((slugify.slugify(s, separator=char_to_replace) for s in string.split('.')))
         return result
@@ -58,8 +58,8 @@ class Downloader:
         """
         Check filename size on server by Content-Length
         :return:
-        :type uri: unicode
-        :type filename: unicode
+        :type uri: TEXT
+        :type filename: TEXT
         :rtype: int or None
         """
         resp = self._http_session.head(uri, headers=self._http_headers)
@@ -74,8 +74,8 @@ class Downloader:
     def _retrieve_uri_to_file(self, uri, filename):
         """
         Download URI to File
-        :type uri: unicode
-        :type filename: unicode
+        :type uri: TEXT
+        :type filename: TEXT
         :rtype: None
         """
         # Downloading
@@ -92,11 +92,11 @@ class Downloader:
 
     def download_one_file(self, absolute_uri):
         """
-            Downloads one file from absolute_uri to DOWNLOAD_DIR + absolute_uri.path
-            if file already exists - skip it
-            :type absolute_uri: unicode
-            :rtype: unicode
-            """
+        Downloads one file from absolute_uri to DOWNLOAD_DIR + absolute_uri.path
+        if file already exists - skip it
+        :type absolute_uri: TEXT
+        :rtype: TEXT
+        """
         filename = self.uri_to_filename(absolute_uri)
         if filename == self._downloaded_files_by_uri.get(absolute_uri):
             # In case of #EXT-X-BYTERANGE for same file

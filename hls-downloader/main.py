@@ -1,22 +1,22 @@
 from __future__ import division, print_function
 
-import os
-import sys
 import argparse
 import codecs
 import json
 import logging
+import os
 import shutil
+import sys
 from collections import defaultdict
+
+import m3u8
+
+from . import downloader
 
 if sys.version_info.major == 2:
     import urlparse  # Python 2.x
 else:
     import urllib.parse as urlparse  # Python 3.x
-
-import m3u8
-
-import downloader
 
 DOWNLOADER = None  # Instance of downloader.Downloader
 
@@ -58,9 +58,9 @@ def download_files_from_playlist(m3u8list):
 def process_playlist_by_uri(absolute_uri):
     """
     Download and process m3u8 playlist
-    :type absolute_uri: unicode
+    :type absolute_uri: TEXT
     :return: Filename of downloaded Playlist
-    :rtype: unicode
+    :rtype: TEXT
     """
     filename = DOWNLOADER.download_one_file(absolute_uri)
     base_uri = '/'.join(absolute_uri.split('/')[:-1]) + '/'
@@ -77,7 +77,7 @@ def process_main_playlist(url_to_m3u8):
     """
     Process main playlist and save it to main.m3u8
     Additional information to description.json
-    :type url_to_m3u8: unicode
+    :type url_to_m3u8: TEXT
     :rtype: None
     """
     DESCRIPTION['origin_url'] = url_to_m3u8
