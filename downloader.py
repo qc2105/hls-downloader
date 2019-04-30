@@ -111,9 +111,10 @@ class Downloader:
         logging.info("Downloading %s to %s", uri, filename)
         t0 = time.time()
         try:
-            resp = self._http_session.get(uri, headers=self._http_headers, timeout=15)
+            resp = self._http_session.get(uri, headers=self._http_headers)
         except requests.RequestException as e:
             logging.exception(e)
+            raise e
         else:
             print('It eventually worked', resp.status_code)
         finally:
