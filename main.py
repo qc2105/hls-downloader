@@ -8,6 +8,8 @@ import json
 import logging
 import shutil
 from collections import defaultdict
+from multiprocessing import Pool
+
 
 if sys.version_info.major == 2:
     import urlparse  # Python 2.x
@@ -51,8 +53,18 @@ def download_files_from_playlist(m3u8list):
         segment_map_absolute_url = urlparse.urljoin(m3u8list.base_uri, m3u8list.segment_map['uri'])
     if segment_map_absolute_url:
         DOWNLOADER.download_one_file(segment_map_absolute_url)
+    absolute_uris = []
+    print("n segments: " + str(len(m3u8list.segments)))
     for segment in m3u8list.segments:
-        DOWNLOADER.download_one_file(segment.absolute_uri)
+        absolute_uris.append(segment.absolute_uri)
+        print(len(absolute_uris))
+        if (len(absolute_uris) == int(DOWNLOADER.nprocesses())):
+            with Pool(int(DOWNLOADER.nprocesses())) as p:
+                p.map(DOWNLOADER.download_one_file, absolute_uris)
+            absolute_uris.clear()
+        #DOWNLOADER.download_one_file(segment.absolute_uri)
+
+   
 
 
 def process_playlist_by_uri(absolute_uri):
@@ -101,7 +113,7 @@ def process_main_playlist(url_to_m3u8):
         logging.info("Copied %s -> %s", main_list_filename, os.path.join(main_list_dir, 'main.m3u8'))
 
 
-def main(url_to_m3u8, download_dir, verbose):
+def main(url_to_m3u8, download_dir, verbose, nprocesses):
     """
     :type url_to_m3u8: str 
     :type download_dir: str 
@@ -109,9 +121,11 @@ def main(url_to_m3u8, download_dir, verbose):
     :rtype: None 
     """
     global DOWNLOADER
-    DOWNLOADER = downloader.Downloader(download_dir=download_dir)
+    print("n: " + str(nprocesses))
+    DOWNLOADER = downloader.Downloader(download_dir=download_dir, nprocesses=nprocesses)
     logging.basicConfig(level=logging.INFO if verbose else logging.WARNING)
-
+    
+    print("nd: " + str(DOWNLOADER.nprocesses()))
     process_main_playlist(url_to_m3u8)
 
 
@@ -123,6 +137,7 @@ def parse_args():
     parser.add_argument('url_to_m3u8', help="Url to main.m3u8")
     parser.add_argument('download_dir', help="Path to save files")
     parser.add_argument('-v', '--verbose', action="store_true", help="Be more verbose")
+    parser.add_argument('-n', '--nprocesses', help="number of processes")
     kwargs = vars(parser.parse_args())
     return kwargs
 

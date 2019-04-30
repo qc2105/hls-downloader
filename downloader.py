@@ -10,8 +10,31 @@ if sys.version_info.major == 2:
 else:
     import urllib.parse as urlparse  # Python 3.x
 
-import requests
 import slugify
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import time
+
+def requests_retry_session(
+    retries=99,
+    backoff_factor=0.3,
+    status_forcelist=(500, 502, 504),
+    session=None,
+):
+    session = session or requests.Session()
+    retry = Retry(
+        total=retries,
+        read=retries,
+        connect=retries,
+        backoff_factor=backoff_factor,
+        status_forcelist=status_forcelist,
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
 
 
 class Downloader:
@@ -26,18 +49,24 @@ class Downloader:
         result = '.'.join((slugify.slugify(s, separator=char_to_replace) for s in string.split('.')))
         return result
 
-    def __init__(self, download_dir):
+    def __init__(self, download_dir, nprocesses):
         self._download_dir = download_dir
         self._downloaded_files_by_uri = OrderedDict()
-        self._http_session = requests.session()
+        
+
+        self._http_session = requests_retry_session()
+
         self._http_headers = {
             'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/602.4.8 (KHTML, like Gecko)"
                           " Version/10.0.3 Safari/602.4.8"
         }
+        self._nprocesses = nprocesses
 
     @property
     def download_dir(self):
         return self._download_dir
+    def nprocesses(self):
+        return self._nprocesses
 
     def downloaded_files_by_url(self):
         return self._downloaded_files_by_uri.copy()
@@ -80,11 +109,17 @@ class Downloader:
         """
         # Downloading
         logging.info("Downloading %s to %s", uri, filename)
+        t0 = time.time()
         try:
-            resp = self._http_session.get(uri, headers=self._http_headers)
+            resp = self._http_session.get(uri, headers=self._http_headers, timeout=15)
         except requests.RequestException as e:
             logging.exception(e)
-            raise e
+        else:
+            print('It eventually worked', resp.status_code)
+        finally:
+            t1 = time.time()
+            print('Took', t1 - t0, 'seconds')
+
         # Write to file
         with open(filename, 'wb') as fd:
             for chunk in resp.iter_content(chunk_size=2 ** 20):
@@ -98,6 +133,7 @@ class Downloader:
             :rtype: unicode
             """
         filename = self.uri_to_filename(absolute_uri)
+        print("downloading: " + filename)
         if filename == self._downloaded_files_by_uri.get(absolute_uri):
             # In case of #EXT-X-BYTERANGE for same file
             logging.warning("File %s already downloaded", filename)
