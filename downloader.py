@@ -148,7 +148,7 @@ class Downloader:
             if size_diff is not None:  # None means not Content-Length header present
                 logging.warning("File %s and URI %s size mismatch", filename, absolute_uri)
         dst_dir = os.path.dirname(filename)
-        if not os.path.isdir(dst_dir):
+        if not os.path.exists(dst_dir):
             os.makedirs(dst_dir)
         self._retrieve_uri_to_file(absolute_uri, filename)
         self._downloaded_files_by_uri[absolute_uri] = filename
